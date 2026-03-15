@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Premium Pro Pool 3D | by MMN-Codes</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+
+        :root {
+            --wood-dark: #1a0f0a;
+            --wood-light: #4a2e1b;
+            --felt: #0a4f29;
+            --felt-light: #0d6b38;
+            --gold: #FFD700;
+            --gold-dark: #b8860b;
+            --glass-bg: rgba(20, 20, 25, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background: radial-gradient(circle at center, #1b263b 0%, #0d1321 100%);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden; touch-action: none; user-select: none;
+            display: flex; flex-direction: column;
+            height: 100vh; width: 100vw;
+            color: white;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- UI Overlay --- */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        /* Top HUD */
+        .hud-top {
+            background: linear-gradient(180deg, rgba(10,10,15,0.9) 0%, rgba(10,10,15,0) 100%);
+            padding: 15px 20px 40px 20px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            height: 100px; box-sizing: border-box;
+            pointer-events: auto;
+        }
+
+        .player-card {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 5px 15px 5px 5px;
+            border-radius: 40px; border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            opacity: 0.5;
+        }
+        
+        .player-card.active {
+            opacity: 1;
+            border-color: var(--gold);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), inset 0 0 10px rgba(255,215,0,0.1);
+            transform: scale(1.05);
+        }
+
+        .avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            border: 2px solid var(--gold); background: #222; overflow: hidden;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+        }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .score-info { display: flex; flex-direction: column; justify-content: center; }
+        .score-name { font-size: 11px; font-weight: 900; color: #ccc; letter-spacing: 1px; margin-bottom: 2px; text-transform: uppercase; }
+        .score-pill {
+            font-weight: 700; font-size: 11px;
+            display: flex; align-items: center; gap: 6px; color: #fff; text-transform: uppercase;
+        }
+        .ball-icon {
+            width: 14px; height: 14px; border-radius: 50%; display: inline-block;
+            border: 1px solid rgba(255,255,255,0.5); box-shadow: inset -2px -2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Controls Area */
+        .controls-area {
+            position: absolute; bottom: 0; right: 0;
+            width: 60px; height: 100%;
+            pointer-events: none;
+            display: flex; flex-direction: column;
+            justify-content: flex-end; align-items: center;
+            padding-bottom: 50px;
+        }
+
+        /* Power Slider */
+        .power-wrapper {
+            pointer-events: auto;
+            width: 24px; height: 300px;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 12px;
+            position: relative; overflow: visible;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 10px rgba(0,0,0,0.8);
+            margin-right: 20px;
+        }
+        
+        .power-track {
+            position: absolute; left: 50%; top: 15px; bottom: 15px;
+            width: 4px; background: linear-gradient(to bottom, #ff4444, #ffeb3b, #4caf50); 
+            transform: translateX(-50%); border-radius: 2px;
+            box-shadow: 0 0 5px rgba(255,255,255,0.2);
+            opacity: 0.5; transition: opacity 0.3s;
+        }
+        .power-wrapper:active .power-track { opacity: 1; }
+        
+        .cue-knob {
+            position: absolute; left: 50%; top: 0;
+            width: 22px; height: 50px; 
+            transform: translateX(-50%);
+            background: linear-gradient(90deg, #d4a373, #faedcd, #d4a373);
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.9), inset 0 0 5px rgba(0,0,0,0.5);
+            cursor: grab; border: 1px solid #fff; z-index: 20;
+        }
+        .cue-knob::before {
+            content:''; position: absolute; top: -5px; left: 2px; right: 2px; height: 6px;
+            background: #007bff; border-radius: 3px 3px 0 0; border: 1px solid #0056b3;
+        }
+        .cue-knob::after {
+            content:''; position: absolute; bottom: 10px; left: 0; right: 0; height: 2px; background: rgba(0,0,0,0.2);
+        }
+
+        /* Menu */
+        #menu-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 10, 0.85); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .menu-box {
+            background: var(--glass-bg);
+            padding: 40px; border-radius: 25px; text-align: center;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 0 20px rgba(255,255,255,0.05);
+            max-width: 350px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn { from { transform: scale(0.8) translateY(30px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+        
+        .btn-gold {
+            background: linear-gradient(to bottom, #FFD700, #F39C12);
+            border: 2px solid #FFF; padding: 18px 50px; color: #111;
+            font-weight: 900; font-size: 20px; border-radius: 50px;
+            margin-top: 25px; cursor: pointer; width: 100%;
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4), inset 0 -4px 0 rgba(0,0,0,0.2);
+            text-transform: uppercase; letter-spacing: 2px;
+            transition: all 0.2s ease;
+        }
+        .btn-gold:active { transform: translateY(5px); box-shadow: 0 2px 10px rgba(255, 215, 0, 0.4), inset 0 -1px 0 rgba(0,0,0,0.2); }
+
+        /* Canvas Container */
+        #game-wrapper {
+            flex: 1; position: relative; background: transparent;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; padding-top: 90px; padding-bottom: 40px;
+        }
+        
+        canvas {
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 0 8px rgba(255,255,255,0.05);
+            border-radius: 45px; 
+            z-index: 1;
+        }
+
+        .notification {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); color: var(--gold);
+            padding: 20px 50px; border-radius: 20px;
+            border: 2px solid var(--gold);
+            font-size: 36px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6), 0 0 30px rgba(255, 215, 0, 0.3);
+            opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 50; white-space: nowrap; text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        /* Branding */
+        .branding {
+            position: absolute; bottom: 15px; width: 100%; text-align: center;
+            font-size: 13px; font-weight: 700; letter-spacing: 2px;
+            color: rgba(255,255,255,0.6); text-transform: uppercase; z-index: 100;
+            pointer-events: auto;
+        }
+        .branding a { color: inherit; text-decoration: none; transition: color 0.3s; }
+        .branding a:hover { color: #fff; }
+        .branding span { color: var(--gold); text-shadow: 0 0 8px rgba(255,215,0,0.5); font-weight: 900; }
+
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div class="player-card active" id="p1-card">
+                <div class="avatar"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Max&backgroundColor=b6e3f4" alt="P1"></div>
+                <div class="score-info">
+                    <div class="score-name">Player</div>
+                    <div class="score-pill" id="p1-score">
+                        <span class="ball-icon" style="background: radial-gradient(circle at 30% 30%, #ff5252, #b71c1c);"></span> Solids
+                    </div>
+                </div>
+            </div>
+            <div class="player-card" id="p2-card" style="flex-direction:row-reverse; text-align:right;">
+                <div class="avatar"><img src="https://api.dicebear.com/7.x/bottts/svg?seed=Robo&backgroundColor=ffdfbf" alt="CPU"></div>
+                <div class="score-info">
+                    <div class="score-name">CPU Pro</div>
+                    <div class="score-pill" id="p2-score">
+                        Stripes <span class="ball-icon" style="background: radial-gradient(circle at 30% 30%, #ffd54f, #f57f17);"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-area">
+            <div style="color:var(--gold); font-size:11px; font-weight:900; margin-bottom:10px; margin-right:20px; text-shadow:0 2px 5px black; letter-spacing: 1px;">POWER</div>
+            <div class="power-wrapper" id="power-slider">
+                <div class="power-track"></div>
+                <div class="cue-knob" id="cue-knob"></div>
+            </div>
+        </div>
+        
+        <div class="notification" id="game-toast">SCRATCH!</div>
+    </div>
+
+    <div id="game-wrapper">
+        <canvas id="poolCanvas"></canvas>
+    </div>
+
+    <div id="menu-overlay">
+        <div class="menu-box">
+            <h1 style="margin:0; font-size:48px; background: linear-gradient(45deg, #FFD700, #FFA500); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.6)); line-height:1; letter-spacing: 2px;">PRO POOL</h1>
+            <h2 style="margin: 5px 0 20px 0; font-size: 20px; color: #fff; font-weight: 300; letter-spacing: 4px;">ULTIMATE 3D</h2>
+            
+            <div style="text-align:left; font-size:14px; color:#ddd; background:rgba(0,0,0,0.5); padding:20px; border-radius:15px; line-height:1.8; border: 1px solid rgba(255,255,255,0.1); font-weight: 600;">
+                🎯 <b>Drag Screen</b> to Aim<br>
+                🎱 <b>Pull Slider</b> (Right) to Shoot<br>
+                🏆 <b>Sink all balls</b> to Win!
+            </div>
+            <button class="btn-gold" onclick="startGame()">PLAY NOW</button>
+        </div>
+    </div>
+
+    <!-- Branding -->
+    <div class="branding">
+        <a href="https://mmn-codes.vercel.app/" target="_blank">Made by <span>MMN-Codes</span></a>
+    </div>
+
+<script>
+    // --- Web Audio API (Premium Sound Synthesizer) ---
+    const sfx = {
+        ctx: null,
+        init() {
+            if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+        },
+        playTone(freq, type, duration, vol=0.1) {
+            if (!this.ctx) return;
+            try {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            } catch(e) {}
+        },
+        strike(power) { this.playTone(100, 'triangle', 0.15, power * 0.5); },
+        hit(velocity) { 
+            let v = Math.min(velocity / 15, 0.4);
+            if(v > 0.05) this.playTone(800 + Math.random()*200, 'sine', 0.05, v); 
+        },
+        rail(velocity) {
+            let v = Math.min(velocity / 20, 0.3);
+            if(v > 0.05) this.playTone(200, 'square', 0.1, v); 
+        },
+        pocket() {
+            this.playTone(300, 'sine', 0.1, 0.2);
+            setTimeout(() => this.playTone(200, 'sine', 0.2, 0.2), 100);
+        },
+        scratch() {
+            this.playTone(150, 'sawtooth', 0.3, 0.3);
+            setTimeout(() => this.playTone(100, 'sawtooth', 0.4, 0.3), 150);
+        },
+        win() {
+            [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                setTimeout(() => this.playTone(freq, 'sine', 0.4, 0.3), i * 150);
+            });
+        }
+    };
+
+    const canvas = document.getElementById('poolCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const slider = document.getElementById('power-slider');
+    const knob = document.getElementById('cue-knob');
+    const toast = document.getElementById('game-toast');
+
+    // --- Configurations ---
+    const IS_MOBILE = window.innerHeight > window.innerWidth;
+    const TABLE_W = IS_MOBILE ? 500 : 920; 
+    const TABLE_H = IS_MOBILE ? 920 : 460;
+    
+    const BALL_R = 16; 
+    const POCKET_R = 36; 
+    const RAIL_WIDTH = 40;
+    const FRICTION = 0.988; 
+    const RAIL_DAMP = 0.7;
+    const SUB_STEPS = 8; 
+
+    let SCALE = 1;
+    let canvasBounds = {};
+
+    // --- Game State ---
+    let gameState = 'MENU';
+    let turn = 'PLAYER';
+    let balls = [];
+    let cue = { angle: IS_MOBILE ? Math.PI/2 : Math.PI, power: 0 };
+    let draggingCue = false;
+    let startY = 0;
+    let soundCooldown = 0;
+
+    // --- Rich Texture Gen ---
+    const feltCanvas = document.createElement('canvas');
+    feltCanvas.width = 256; feltCanvas.height = 256;
+    const fctx = feltCanvas.getContext('2d');
+    fctx.fillStyle = '#0a4f29'; 
+    fctx.fillRect(0,0,256,256);
+    for(let i=0; i<3000; i++) {
+        fctx.fillStyle = `rgba(255,255,255,${Math.random()*0.04})`;
+        fctx.beginPath(); fctx.arc(Math.random()*256, Math.random()*256, Math.random()*1.5, 0, Math.PI*2); fctx.fill();
+        fctx.fillStyle = `rgba(0,0,0,${Math.random()*0.05})`;
+        fctx.beginPath(); fctx.arc(Math.random()*256, Math.random()*256, Math.random()*1.5, 0, Math.PI*2); fctx.fill();
+    }
+    const feltPattern = ctx.createPattern(feltCanvas, 'repeat');
+
+    // --- Resize Logic ---
+    function resize() {
+        const wrapper = document.getElementById('game-wrapper');
+        const availW = wrapper.clientWidth;
+        const availH = wrapper.clientHeight - (parseFloat(getComputedStyle(wrapper).paddingTop) + parseFloat(getComputedStyle(wrapper).paddingBottom));
+
+        const aspect = TABLE_W / TABLE_H;
+        let finalW = availW * 0.95; // 95% of screen width to show borders
+        let finalH = finalW / aspect;
+
+        if (finalH > availH * 0.95) {
+            finalH = availH * 0.95;
+            finalW = finalH * aspect;
+        }
+
+        canvas.width = finalW;
+        canvas.height = finalH;
+        SCALE = finalW / TABLE_W;
+        canvasBounds = canvas.getBoundingClientRect();
+    }
+    window.addEventListener('resize', resize);
+    
+    // --- Initialization ---
+    function initGame() {
+        resize();
+        balls = [];
+        
+        const cx = TABLE_W/2, cy = TABLE_H/2;
+        let rackX, rackY, cueX, cueY;
+
+        if (IS_MOBILE) {
+            cueX = cx; cueY = TABLE_H * 0.75;
+            rackX = cx; rackY = TABLE_H * 0.25;
+        } else {
+            cueX = TABLE_W * 0.25; cueY = cy;
+            rackX = TABLE_W * 0.70; rackY = cy;
+        }
+
+        // Cue Ball
+        balls.push({ x: cueX, y: cueY, vx: 0, vy: 0, id: 0, active: true });
+
+        // Rack Generation (Triangle)
+        const sp = BALL_R * 2.05; // slight gap
+        const rows = 5;
+        
+        let ballIds = [1,2,3,4,5,6,7, 9,10,11,12,13,14,15]; // 8 is reserved
+        ballIds.sort(() => Math.random() - 0.5); // shuffle
+        
+        for (let r = 0; r < rows; r++) {
+            for(let c=0; c<=r; c++) {
+                let bx, by;
+                if(IS_MOBILE) {
+                    bx = cx - (r * sp / 2) + (c * sp);
+                    by = rackY - (r * sp * 0.866);
+                } else {
+                    bx = rackX + (r * sp * 0.866);
+                    by = cy - (r * sp / 2) + (c * sp);
+                }
+                
+                let id = (r===2 && c===1) ? 8 : ballIds.pop();
+                balls.push({ x: bx, y: by, vx: 0, vy: 0, id: id, active: true });
+            }
+        }
+        gameState = 'AIMING';
+        turn = 'PLAYER';
+        updateUI();
+    }
+
+    const BALL_COLORS = {
+        0: '#ffffff', 1: '#fdd835', 2: '#1e88e5', 3: '#e53935', 
+        4: '#5e35b1', 5: '#fb8c00', 6: '#43a047', 7: '#8d6e63', 8: '#212121'
+    };
+    function getBallColor(id) { return id > 8 ? BALL_COLORS[id-8] : BALL_COLORS[id]; }
+    function isStriped(id) { return id > 8; }
+
+    // --- Inputs ---
+    function getTouchPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: (cx - rect.left) / SCALE, y: (cy - rect.top) / SCALE };
+    }
+
+    canvas.addEventListener('touchstart', handleAim, {passive:false});
+    canvas.addEventListener('touchmove', handleAim, {passive:false});
+    canvas.addEventListener('mousedown', handleAim);
+    window.addEventListener('mousemove', (e) => { if(e.buttons===1) handleAim(e); });
+
+    function handleAim(e) {
+        if(gameState !== 'AIMING' || turn !== 'PLAYER') return;
+        sfx.init();
+        const pos = getTouchPos(e);
+        const cb = balls[0];
+        if(!cb.active) return;
+        cue.angle = Math.atan2(pos.y - cb.y, pos.x - cb.x);
+    }
+
+    slider.addEventListener('mousedown', startDrag);
+    slider.addEventListener('touchstart', startDrag, {passive:false});
+    window.addEventListener('mousemove', moveDrag);
+    window.addEventListener('touchmove', moveDrag, {passive:false});
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
+
+    function startDrag(e) {
+        if(gameState !== 'AIMING' || turn !== 'PLAYER') return;
+        sfx.init();
+        draggingCue = true;
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+    }
+
+    function moveDrag(e) {
+        if(!draggingCue) return;
+        e.preventDefault();
+        const y = e.touches ? e.touches[0].clientY : e.clientY;
+        const delta = y - startY;
+        let pull = Math.max(0, Math.min(250, delta));
+        cue.power = pull / 250;
+        knob.style.top = pull + 'px';
+    }
+
+    function endDrag(e) {
+        if(!draggingCue) return;
+        draggingCue = false;
+        if(cue.power > 0.05) shoot();
+        
+        knob.style.transition = 'top 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        knob.style.top = '0px';
+        setTimeout(() => { knob.style.transition = 'none'; cue.power = 0; }, 200);
+    }
+
+    function shoot() {
+        sfx.strike(cue.power);
+        const force = cue.power * 55; // Premium fast speed
+        balls[0].vx = Math.cos(cue.angle) * force;
+        balls[0].vy = Math.sin(cue.angle) * force;
+        gameState = 'MOVING';
+    }
+
+    // --- Physics ---
+    function updatePhysics() {
+        if(gameState !== 'MOVING') return;
+        let moving = false;
+        const margin = RAIL_WIDTH;
+        if (soundCooldown > 0) soundCooldown--;
+
+        for(let s=0; s<SUB_STEPS; s++) {
+            balls.forEach(b => {
+                if(!b.active) return;
+                b.x += b.vx / SUB_STEPS;
+                b.y += b.vy / SUB_STEPS;
+
+                // Wall Collisions
+                if(b.x < margin + BALL_R) { b.x = margin+BALL_R; b.vx *= -RAIL_DAMP; if(soundCooldown===0){ sfx.rail(Math.abs(b.vx)); soundCooldown=5; } }
+                if(b.x > TABLE_W - margin - BALL_R) { b.x = TABLE_W-margin-BALL_R; b.vx *= -RAIL_DAMP; if(soundCooldown===0){ sfx.rail(Math.abs(b.vx)); soundCooldown=5; } }
+                if(b.y < margin + BALL_R) { b.y = margin+BALL_R; b.vy *= -RAIL_DAMP; if(soundCooldown===0){ sfx.rail(Math.abs(b.vy)); soundCooldown=5; } }
+                if(b.y > TABLE_H - margin - BALL_R) { b.y = TABLE_H-margin-BALL_R; b.vy *= -RAIL_DAMP; if(soundCooldown===0){ sfx.rail(Math.abs(b.vy)); soundCooldown=5; } }
+            });
+
+            // Ball Collisions
+            for(let i=0; i<balls.length; i++) {
+                for(let j=i+1; j<balls.length; j++) {
+                    const b1 = balls[i], b2 = balls[j];
+                    if(!b1.active || !b2.active) continue;
+                    
+                    const dx = b2.x - b1.x, dy = b2.y - b1.y;
+                    const d2 = dx*dx + dy*dy;
+                    const minD = BALL_R * 2;
+                    
+                    if(d2 < minD*minD) {
+                        const dist = Math.sqrt(d2);
+                        const nx = dx/dist, ny = dy/dist;
+                        const pen = (minD - dist) * 0.5;
+                        
+                        b1.x -= nx*pen; b1.y -= ny*pen;
+                        b2.x += nx*pen; b2.y += ny*pen;
+
+                        const v1n = b1.vx*nx + b1.vy*ny;
+                        const v2n = b2.vx*nx + b2.vy*ny;
+                        const dv = v1n - v2n;
+                        
+                        if(dv > 0) {
+                             if(soundCooldown===0) { sfx.hit(dv); soundCooldown=4; }
+                             // Restitution 0.95 for realistic clack
+                             const impulse = dv * 0.95;
+                             b1.vx -= impulse*nx; b1.vy -= impulse*ny;
+                             b2.vx += impulse*nx; b2.vy += impulse*ny;
+                        }
+                    }
+                }
+            }
+        }
+
+        balls.forEach(b => {
+            if(!b.active) return;
+            b.vx *= FRICTION; b.vy *= FRICTION;
+            if(Math.abs(b.vx)+Math.abs(b.vy) > 0.04) moving = true;
+            else { b.vx=0; b.vy=0; }
+        });
+
+        checkPockets();
+        if(!moving) handleTurnEnd();
+    }
+
+    function checkPockets() {
+        const pockets = getPocketLocs();
+        balls.forEach(b => {
+            if(!b.active) return;
+            for(let p of pockets) {
+                if(Math.hypot(b.x - p.x, b.y - p.y) < POCKET_R) {
+                    b.active = false;
+                    if(b.id === 0) {
+                        sfx.scratch();
+                        showNotification("SCRATCH!", "#ff4444");
+                    } else if (b.id === 8) {
+                        sfx.win();
+                        showNotification("8-BALL IN!", "#ffd700");
+                        setTimeout(() => endGame(), 2000);
+                    } else {
+                        sfx.pocket();
+                        showNotification(`BALL ${b.id}`, "#4caf50");
+                    }
+                }
+            }
+        });
+    }
+
+    function getPocketLocs() {
+        const m = RAIL_WIDTH;
+        const w = TABLE_W, h = TABLE_H;
+        const locs = [
+            {x:m, y:m}, {x:w-m, y:m},
+            {x:m, y:h-m}, {x:w-m, y:h-m}
+        ];
+        if(IS_MOBILE) locs.push({x:m, y:h/2}, {x:w-m, y:h/2});
+        else locs.push({x:w/2, y:m}, {x:w/2, y:h-m});
+        return locs;
+    }
+
+    function handleTurnEnd() {
+        if(!balls[0].active) {
+            balls[0].active = true;
+            balls[0].vx = 0; balls[0].vy = 0;
+            if(IS_MOBILE) { balls[0].x = TABLE_W/2; balls[0].y = TABLE_H*0.75; }
+            else { balls[0].x = TABLE_W*0.25; balls[0].y = TABLE_H/2; }
+        }
+        
+        turn = (turn === 'PLAYER') ? 'CPU' : 'PLAYER';
+        gameState = 'AIMING';
+        updateUI();
+
+        if(turn === 'CPU') setTimeout(cpuPlay, 1000);
+    }
+
+    function cpuPlay() {
+        if(turn !== 'CPU' || gameState !== 'AIMING') return;
+
+        const targets = balls.filter(b => b.active && b.id !== 0 && b.id !== 8); // Avoid 8-ball until last
+        let bestTarget = targets.length > 0 ? targets[Math.floor(Math.random() * targets.length)] : balls.find(b=>b.id===8);
+        
+        if(bestTarget) {
+            const cb = balls[0];
+            const dx = bestTarget.x - cb.x;
+            const dy = bestTarget.y - cb.y;
+            cue.angle = Math.atan2(dy, dx) + (Math.random()-0.5) * 0.05; // slight inaccuracy
+            
+            // Animate slider
+            let targetPwr = 0.4 + Math.random()*0.4;
+            let currentPwr = 0;
+            let int = setInterval(() => {
+                currentPwr += 0.05;
+                knob.style.top = (currentPwr * 250) + 'px';
+                if(currentPwr >= targetPwr) {
+                    clearInterval(int);
+                    cue.power = currentPwr;
+                    knob.style.top = '0px';
+                    setTimeout(shoot, 100);
+                }
+            }, 30);
+        }
+    }
+
+    function updateUI() {
+        const p1 = document.getElementById('p1-card');
+        const p2 = document.getElementById('p2-card');
+        if(turn === 'PLAYER') {
+            p1.classList.add('active'); p2.classList.remove('active');
+        } else {
+            p2.classList.add('active'); p1.classList.remove('active');
+        }
+    }
+
+    function showNotification(txt, col) {
+        toast.innerText = txt;
+        toast.style.borderColor = col;
+        toast.style.color = col;
+        toast.style.opacity = 1;
+        toast.style.transform = 'translate(-50%, -50%) scale(1.1)';
+        setTimeout(() => {
+            toast.style.opacity = 0;
+            toast.style.transform = 'translate(-50%, -50%) scale(0.5)';
+        }, 1500);
+    }
+
+    function endGame() {
+        document.getElementById('menu-overlay').style.display = 'flex';
+        document.querySelector('.menu-box h1').innerText = "GAME OVER";
+        document.querySelector('.btn-gold').innerText = "PLAY AGAIN";
+    }
+
+    // --- Premium Rendering ---
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.scale(SCALE, SCALE);
+
+        drawTable();
+        drawBalls();
+        
+        if(gameState === 'AIMING' && balls[0].active) drawCue();
+
+        ctx.restore();
+        requestAnimationFrame(draw);
+    }
+
+    function drawTable() {
+        const r = 45; 
+        
+        // Wood Frame Outer
+        ctx.beginPath();
+        ctx.roundRect(0, 0, TABLE_W, TABLE_H, r);
+        
+        const woodGrad = ctx.createLinearGradient(0, 0, TABLE_W, TABLE_H);
+        woodGrad.addColorStop(0, '#3e2312');
+        woodGrad.addColorStop(0.5, '#6a4025');
+        woodGrad.addColorStop(1, '#2b160b');
+        ctx.fillStyle = woodGrad;
+        ctx.fill();
+        ctx.lineWidth = 4; ctx.strokeStyle = '#1a0f08'; ctx.stroke();
+
+        // Inner Felt Area
+        const m = RAIL_WIDTH;
+        ctx.beginPath();
+        ctx.roundRect(m, m, TABLE_W-m*2, TABLE_H-m*2, 15);
+        ctx.fillStyle = feltPattern;
+        ctx.fill();
+
+        // Inner Shadow (Cushion Depth)
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 25; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+        ctx.stroke();
+        ctx.shadowColor = 'transparent';
+
+        // Pockets
+        const pockets = getPocketLocs();
+        pockets.forEach(p => {
+            // Hole
+            ctx.beginPath(); ctx.arc(p.x, p.y, POCKET_R, 0, Math.PI*2);
+            ctx.fillStyle = '#0a0a0a'; ctx.fill();
+            // Inner Darkness
+            let pg = ctx.createRadialGradient(p.x, p.y, POCKET_R*0.5, p.x, p.y, POCKET_R);
+            pg.addColorStop(0, 'rgba(0,0,0,1)'); pg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = pg; ctx.fill();
+            
+            // Metallic Rim
+            ctx.beginPath(); ctx.arc(p.x, p.y, POCKET_R + 10, 0, Math.PI*2);
+            ctx.strokeStyle = '#222'; ctx.lineWidth = 8; ctx.stroke();
+            
+            ctx.beginPath(); ctx.arc(p.x, p.y, POCKET_R + 10, 0, Math.PI*2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 2; ctx.stroke();
+        });
+    }
+
+    function drawBalls() {
+        // Render Shadows First
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        balls.forEach(b => {
+            if(!b.active) return;
+            ctx.beginPath(); ctx.arc(b.x+3, b.y+4, BALL_R, 0, Math.PI*2); ctx.fill();
+        });
+
+        // Render Balls
+        balls.forEach(b => {
+            if(!b.active) return;
+            const x = b.x, y = b.y;
+            
+            // Base Color
+            ctx.fillStyle = getBallColor(b.id);
+            ctx.beginPath(); ctx.arc(x, y, BALL_R, 0, Math.PI*2); ctx.fill();
+            
+            // Stripe Logic
+            if(isStriped(b.id)) {
+                ctx.fillStyle = '#f5f5f5';
+                ctx.beginPath(); ctx.arc(x, y, BALL_R, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = getBallColor(b.id);
+                ctx.beginPath(); ctx.rect(x-BALL_R, y-6, BALL_R*2, 12); ctx.fill();
+            }
+
+            // 3D Spherical Shading
+            const g = ctx.createRadialGradient(x-BALL_R*0.3, y-BALL_R*0.3, BALL_R*0.1, x, y, BALL_R);
+            g.addColorStop(0, 'rgba(255,255,255,0.4)');
+            g.addColorStop(0.4, 'rgba(255,255,255,0)');
+            g.addColorStop(0.8, 'rgba(0,0,0,0.4)');
+            g.addColorStop(1, 'rgba(0,0,0,0.8)');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(x, y, BALL_R, 0, Math.PI*2); ctx.fill();
+
+            // Specular Highlight (Gloss)
+            ctx.beginPath();
+            ctx.ellipse(x - BALL_R*0.35, y - BALL_R*0.35, BALL_R*0.3, BALL_R*0.15, Math.PI/4, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.fill();
+
+            // Numbers
+            if(b.id !== 0) {
+                ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                ctx.beginPath(); ctx.arc(x, y, BALL_R*0.45, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#111';
+                ctx.font = 'bold 8px Montserrat, sans-serif';
+                ctx.textAlign='center'; ctx.textBaseline='middle';
+                ctx.fillText(b.id, x, y+1);
+            }
+        });
+    }
+
+    function drawCue() {
+        const cb = balls[0];
+        
+        // Aim Laser
+        ctx.beginPath();
+        ctx.moveTo(cb.x, cb.y);
+        const guideL = 800;
+        ctx.lineTo(cb.x + Math.cos(cue.angle)*guideL, cb.y + Math.sin(cue.angle)*guideL);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([10, 8]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Real 3D Cue Rendering
+        ctx.save();
+        ctx.translate(cb.x, cb.y);
+        ctx.rotate(cue.angle + Math.PI);
+        
+        const recoil = 22 + (cue.power * 100);
+        ctx.translate(recoil, 0);
+
+        // Cue Shadow
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 10; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 15;
+
+        // Wood Shaft
+        const grad = ctx.createLinearGradient(0, -4, 400, -4);
+        grad.addColorStop(0, '#f4d03f');
+        grad.addColorStop(0.4, '#a0522d');
+        grad.addColorStop(1, '#111');
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(0, -3);
+        ctx.lineTo(400, -7);
+        ctx.lineTo(400, 7);
+        ctx.lineTo(0, 3);
+        ctx.fill();
+
+        // White Ferrule & Blue Tip
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = '#eee';
+        ctx.fillRect(-4, -3, 4, 6);
+        ctx.fillStyle = '#007bff';
+        ctx.fillRect(-7, -3, 3, 6);
+
+        ctx.restore();
+    }
+
+    function startGame() {
+        sfx.init();
+        document.getElementById('menu-overlay').style.display = 'none';
+        initGame();
+        if(!window.gameLoopStarted) {
+            window.gameLoopStarted = true;
+            draw();
+            setInterval(updatePhysics, 16);
+        }
+    }
+</script>
+</body>
+</html>
